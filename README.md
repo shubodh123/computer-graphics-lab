@@ -29,7 +29,8 @@ The repository includes the complete master technical report and executable simu
 
 ### Running the Case Study Simulations
 
-All simulation scripts use standard Python 3 and modern WebGL browsers with **zero external dependencies**:
+#### Option 1: Python 3 & WebGL (Zero Dependencies)
+All simulation scripts use standard Python 3 and modern WebGL browsers:
 
 ```bash
 # 1. Case Study 1: Medical Haptic Bone Drilling & VR Latency Analyzer
@@ -47,6 +48,22 @@ open case_studies/case3_retail_webxr_lighting/webxr_retail_sim.html
 # 4. Case Study 4: Helbing's Social Force Metro Station Crowd Evacuation
 python3 case_studies/case4_crowd_evacuation/crowd_evacuation_sim.py
 ```
+
+#### Option 2: Running in Unity (Interactive 3D Scenes)
+All case studies are implemented as standalone, drop-in Unity C# scripts in [`Unity_Case_Studies/`](Unity_Case_Studies/) (packaged in [`Unity_CS4104_Case_Studies_Full_Project.zip`](Unity_CS4104_Case_Studies_Full_Project.zip)):
+
+| Case Study | Unity Script | What it Demonstrates in Unity |
+|---|---|---|
+| **Case Study 3 (Main)** | [`CaseStudy3_RetailCommerceDemo.cs`](Unity_Case_Studies/CaseStudy3_Retail_Commerce/CaseStudy3_RetailCommerceDemo.cs) | • **Charlie Sheen BRDF vs Phong** on Red Velvet Chair<br>• **Procedural Normal Mapping** ON/OFF on Leather Sofa<br>• **Window-to-Viewport Raycasting** to place furniture on AR floor plane<br>• Real-time sun azimuth slider and directional contact shadow catcher |
+| **Case Study 1** | [`CaseStudy1_MedicalHapticBoneDrillingDemo.cs`](Unity_Case_Studies/CaseStudy1_MedicalHapticBoneDrillingDemo.cs) | • **1000 Hz God-Object impedance control** simulation<br>• Cortical-to-cancellous bone "plunge" tactile drop graph |
+| **Case Study 2** | [`CaseStudy2_AutomotiveTransformDemo.cs`](Unity_Case_Studies/CaseStudy2_AutomotiveTransformDemo.cs) | • 1:1 scale car wheel rim with **live $4\times 4$ composite matrix display**<br>• Sutherland-Hodgman clipping and Hi-Z occlusion metrics |
+| **Case Study 4** | [`CaseStudy4_MetroCrowdEvacuationDemo.cs`](Unity_Case_Studies/CaseStudy4_MetroCrowdEvacuationDemo.cs) | • 80+ agents using **Helbing's Social Force Model**<br>• Track fire alarm, bottleneck arching & dynamic exit rerouting |
+
+**Quick Setup in Unity**:
+1. Open any Unity project (Unity 6, 2022, 2021).
+2. Copy `Unity_Case_Studies/` into your project's `Assets/` folder.
+3. In a new scene, create an empty GameObject (**GameObject $\to$ Create Empty**).
+4. Attach `CaseStudy3_RetailCommerceDemo.cs` (or any other case study script) and press **Play (▶)**!
 
 ---
 
