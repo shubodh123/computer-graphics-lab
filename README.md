@@ -50,20 +50,24 @@ python3 case_studies/case4_crowd_evacuation/crowd_evacuation_sim.py
 
 ---
 
-## Lab Experiments (1–8)
+## Lab Experiments (1–10)
 
-C++ implementations of core Computer Graphics lab experiments using OpenGL/GLUT.
+Implementations of core Computer Graphics lab experiments using OpenGL/GLUT (C++) and 3D Interactive Pipelines in Unity (C#).
 
-| Experiment | Topic | Source file |
-|---|---|---|
-| 1 | DDA and Bresenham Line Drawing Algorithms | `Experiment_1_DDA_Bresenham.cpp` |
-| 2 | Midpoint Circle Drawing Algorithm | `Experiment_2_Midpoint_Circle.cpp` |
-| 3 | Two-Dimensional Transformations | `Experiment_3_2D_Transformations.cpp` |
-| 4 | Composite Transformations | `Experiment_4_Composite_Transformations.cpp` |
-| 5 | Cohen–Sutherland Line Clipping Algorithm | `Experiment_5_Cohen_Sutherland_Clipping.cpp` |
-| 6 | Z-Buffer Hidden Surface Removal | `Experiment_6_Z_Buffer.cpp` |
-| 7 | Phong Illumination Model | `Experiment_7_Phong_Illumination.cpp` |
-| 8 | Vertex and Fragment Shaders | `Experiment_8_Vertex_Fragment_Shaders.cpp` |
+| Experiment | Topic | Environment | Source file |
+|---|---|---|---|
+| 1 | DDA and Bresenham Line Drawing Algorithms | OpenGL / C++ | `Experiment_1_DDA_Bresenham.cpp` |
+| 2 | Midpoint Circle Drawing Algorithm | OpenGL / C++ | `Experiment_2_Midpoint_Circle.cpp` |
+| 3 | Two-Dimensional Transformations | OpenGL / C++ | `Experiment_3_2D_Transformations.cpp` |
+| 4 | Composite Transformations | OpenGL / C++ | `Experiment_4_Composite_Transformations.cpp` |
+| 5 | Cohen–Sutherland Line Clipping Algorithm | OpenGL / C++ | `Experiment_5_Cohen_Sutherland_Clipping.cpp` |
+| 6 | Z-Buffer Hidden Surface Removal | OpenGL / C++ | `Experiment_6_Z_Buffer.cpp` |
+| 7 | Phong Illumination Model | OpenGL / C++ | `Experiment_7_Phong_Illumination.cpp` |
+| 8 | Vertex and Fragment Shaders | OpenGL / GLSL | `Experiment_8_Vertex_Fragment_Shaders.cpp` |
+| 9 | Interactive 3D Scene (First-Person Navigation) | Unity / C# | `Experiment_9_Unity_Interactive_3D_Scene/Interactive3DScene.cs` |
+| 10 | 3D Viewing Pipeline (Perspective vs Ortho, Viewport) | Unity / C# | `Experiment_10_Unity_3D_Viewing_Pipeline/ViewingPipelineDemo.cs` |
+
+> Unity experiments code package is also available as a standalone archive: [`Unity_Experiments_9_10_Code.zip`](Unity_Experiments_9_10_Code.zip).
 
 ### Output Screenshots
 
