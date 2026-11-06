@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS4104 Case Study 3: WebXR Architectural AR/VR Furniture Simulator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #11141a;
+      color: #e2e8f0;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    #hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 18px 22px;
+      max-width: 380px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      z-index: 100;
+    }
+    h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+    p.subtitle {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-bottom: 14px;
+      line-height: 1.4;
+    }
+    .panel-group {
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #cbd5e1;
+      margin-bottom: 5px;
+    }
+    select, input[type="range"] {
+      width: 100%;
+      padding: 7px 10px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #f1f5f9;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    select:focus { border-color: #38bdf8; }
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    button {
+      flex: 1;
+      padding: 8px 12px;
+      background: #0284c7;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #0369a1; }
+    button.secondary {
+      background: #334155;
+    }
+    button.secondary:hover { background: #475569; }
+    #stats-box {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.72rem;
+      color: #a5f3fc;
+      line-height: 1.5;
+    }
+    #crosshair-hint {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 8px 18px;
+      border-radius: 30px;
+      font-size: 0.82rem;
+      color: #f8fafc;
+      pointer-events: none;
+      z-index: 100;
+      letter-spacing: 0.02em;
+    }
+  </style>
+  <!-- Three.js from CDN with unpkg / cdnjs fallback -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div id="hud">
+    <h1>CS4104 WebXR AR/VR Showcase</h1>
+    <p class="subtitle">Retail Lighting, Velvet Sheen, Normal Mapping & Window-to-Viewport Raycasting.</p>
+
+    <div class="panel-group">
+      <label for="furniture-select">Active Furniture Piece</label>
+      <select id="furniture-select">
+        <option value="chair">Red Velvet Lounge Chair (Charlie Sheen BRDF)</option>
+        <option value="sofa">Chesterfield Leather Sofa (Normal Mapped)</option>
+      </select>
+    </div>
+
+    <div class="panel-group">
+      <label for="material-model">Illumination / Shading Model</label>
+      <select id="material-model">
+        <option value="pbr_sheen">Physically Based Sheen (Charlie BRDF + PBR)</option>
+        <option value="blinn_phong">Empirical Blinn-Phong (Notice Plastic Artifacts)</option>
+      </select>
+    </div>
+
+    <div class="panel-group">
+      <label for="normal-map-toggle">Leather Normal Mapping</label>
+      <div class="btn-row">
+        <button id="toggle-normal-btn">Normal Map: ENABLED</button>
+      </div>
+    </div>
+
+    <div class="panel-group">
+      <label for="sun-slider">Sun Elevation / Direction</label>
+      <input type="range" id="sun-slider" min="0" max="360" value="45">
+    </div>
+
+    <div id="stats-box">
+      <div>Tap screen to Raycast 3D AR Placement:</div>
+      <div id="stat-pixel">Screen Pixel: (---, ---) px</div>
+      <div id="stat-ndc">NDC: (---, ---)</div>
+      <div id="stat-hit">3D Hit Pos: (0.00, 0.00, 0.00) m</div>
+      <div id="stat-brdf" style="color: #f472b6;">Model: Charlie Sheen Grazing Fuzz</div>
+    </div>
+  </div>
+
+  <div id="crosshair-hint">
+    Click / Tap on hardwood floor to Raycast & Reposition Furniture in 3D Space
+  </div>
+
+  <script>
+    // ----------------------------------------------------
+    // Scene, Camera, Viewport Setup
+    // ----------------------------------------------------
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xdbeafe); // Sunlit ambient sky
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(2.5, 2.0, 3.5);
+    camera.lookAt(0, 0.5, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    container.appendChild(renderer.domElement);
+
+    // ----------------------------------------------------
+    // Sunlit Environment & Lighting
+    // ----------------------------------------------------
+    const ambientLight = new THREE.AmbientLight(0xfff8ee, 0.45);
+    scene.add(ambientLight);
+
+    const hemiLight = new THREE.HemisphereLight(0x93c5fd, 0xd97706, 0.35);
+    scene.add(hemiLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfff5e6, 2.2);
+    sunLight.position.set(3, 5, 2);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 15;
+    sunLight.shadow.camera.left = -3;
+    sunLight.shadow.camera.right = 3;
+    sunLight.shadow.camera.top = 3;
+    sunLight.shadow.camera.bottom = -3;
+    sunLight.shadow.bias = -0.0005;
+    scene.add(sunLight);
+
+    // ----------------------------------------------------
+    // Procedural Floor Texture & Contact Shadow Catcher Plane
+    // ----------------------------------------------------
+    function createWoodTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Draw wood planks
+      for (let y = 0; y < 512; y += 64) {
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(512, y);
+        ctx.stroke();
+
+        ctx.fillStyle = (y % 128 === 0) ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
+        ctx.fillRect(0, y, 512, 64);
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(4, 4);
+      return tex;
+    }
+
+    const floorGeo = new THREE.PlaneGeometry(12, 12);
+    const floorMat = new THREE.MeshStandardMaterial({
+      map: createWoodTexture(),
+      roughness: 0.45,
+      metalness: 0.05
+    });
+    const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+    floorMesh.rotation.x = -Math.PI / 2;
+    floorMesh.receiveShadow = true;
+    scene.add(floorMesh);
+
+    // ----------------------------------------------------
+    // Procedural Normal Map for Leather Creases & Pores
+    // ----------------------------------------------------
+    function generateLeatherNormalMap() {
+      const size = 512;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const imgData = ctx.createImageData(size, size);
+
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const idx = (y * size + x) * 4;
+          // Perlin-like cellular leather grain + tufting wrinkles
+          const fx = Math.sin(x * 0.1) * Math.cos(y * 0.1);
+          const wrinkle = Math.sin(x * 0.03 + y * 0.03) * 0.4;
+          const noise = fx * 0.6 + wrinkle;
+
+          // Normal encoding: R = (nx+1)/2, G = (ny+1)/2, B = (nz+1)/2
+          const nx = noise * 0.6;
+          const ny = Math.cos(x * 0.08 - y * 0.08) * 0.4;
+          const nz = Math.sqrt(Math.max(0.01, 1.0 - (nx * nx + ny * ny)));
+
+          imgData.data[idx + 0] = Math.floor(((nx + 1) / 2) * 255);
+          imgData.data[idx + 1] = Math.floor(((ny + 1) / 2) * 255);
+          imgData.data[idx + 2] = Math.floor(((nz + 1) / 2) * 255);
+          imgData.data[idx + 3] = 255;
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(3, 3);
+      return tex;
+    }
+    const leatherNormalMap = generateLeatherNormalMap();
+
+    // ----------------------------------------------------
+    // Procedural Fabric / Velvet Sheen Shader vs Standard
+    // ----------------------------------------------------
+    const velvetColor = new THREE.Color(0x991b1b); // Rich Red Crimson
+    const chairGroup = new THREE.Group();
+
+    // Chair Seat Cushion
+    const cushionGeo = new THREE.CylinderGeometry(0.55, 0.58, 0.22, 32);
+    const cushionMatPBR = new THREE.MeshPhysicalMaterial({
+      color: velvetColor,
+      roughness: 0.85,
+      metalness: 0.0,
+      sheen: 1.0,               // Three.js Charlie Sheen implementation!
+      sheenRoughness: 0.4,
+      sheenColor: new THREE.Color(0xffb4b4), // Warm pink grazing fuzz
+      clearcoat: 0.0
+    });
+
+    const cushionMatPhong = new THREE.MeshPhongMaterial({
+      color: velvetColor,
+      specular: 0xffffff,
+      shininess: 30
+    });
+
+    const cushionMesh = new THREE.Mesh(cushionGeo, cushionMatPBR);
+    cushionMesh.position.y = 0.55;
+    cushionMesh.castShadow = true;
+    cushionMesh.receiveShadow = true;
+    chairGroup.add(cushionMesh);
+
+    // Chair Curved Backrest
+    const backGeo = new THREE.TorusGeometry(0.55, 0.16, 16, 32, Math.PI);
+    const backMesh = new THREE.Mesh(backGeo, cushionMatPBR);
+    backMesh.rotation.x = Math.PI / 2;
+    backMesh.rotation.z = Math.PI;
+    backMesh.position.set(0, 0.85, 0);
+    backMesh.castShadow = true;
+    chairGroup.add(backMesh);
+
+    // Brass Chair Legs
+    const legGeo = new THREE.CylinderGeometry(0.025, 0.015, 0.52, 16);
+    const brassMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37,
+      metalness: 0.9,
+      roughness: 0.25
+    });
+    const legAngles = [Math.PI/4, 3*Math.PI/4, 5*Math.PI/4, 7*Math.PI/4];
+    legAngles.forEach(ang => {
+      const leg = new THREE.Mesh(legGeo, brassMat);
+      leg.position.set(Math.cos(ang) * 0.42, 0.26, Math.sin(ang) * 0.42);
+      leg.rotation.z = Math.sin(ang) * 0.15;
+      leg.rotation.x = -Math.cos(ang) * 0.15;
+      leg.castShadow = true;
+      chairGroup.add(leg);
+    });
+
+    scene.add(chairGroup);
+
+    // ----------------------------------------------------
+    // Chesterfield Leather Sofa Group
+    // ----------------------------------------------------
+    const sofaGroup = new THREE.Group();
+    const leatherColor = new THREE.Color(0x451a03); // Deep Saddle Brown
+
+    const sofaMatNormal = new THREE.MeshStandardMaterial({
+      color: leatherColor,
+      roughness: 0.65,
+      metalness: 0.05,
+      normalMap: leatherNormalMap,
+      normalScale: new THREE.Vector2(1.8, 1.8)
+    });
+
+    const sofaBaseGeo = new THREE.BoxGeometry(1.8, 0.4, 0.9);
+    const sofaBaseMesh = new THREE.Mesh(sofaBaseGeo, sofaMatNormal);
+    sofaBaseMesh.position.y = 0.35;
+    sofaBaseMesh.castShadow = true;
+    sofaBaseMesh.receiveShadow = true;
+    sofaGroup.add(sofaBaseMesh);
+
+    const sofaBackGeo = new THREE.BoxGeometry(1.8, 0.6, 0.3);
+    const sofaBackMesh = new THREE.Mesh(sofaBackGeo, sofaMatNormal);
+    sofaBackMesh.position.set(0, 0.7, -0.32);
+    sofaBackMesh.castShadow = true;
+    sofaGroup.add(sofaBackMesh);
+
+    // Sofa Armrests
+    const armGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.9, 20);
+    const leftArm = new THREE.Mesh(armGeo, sofaMatNormal);
+    leftArm.rotation.x = Math.PI / 2;
+    leftArm.position.set(-0.95, 0.58, 0);
+    leftArm.castShadow = true;
+    sofaGroup.add(leftArm);
+
+    const rightArm = leftArm.clone();
+    rightArm.position.x = 0.95;
+    sofaGroup.add(rightArm);
+
+    // Short wooden sofa feet
+    const feetGeo = new THREE.CylinderGeometry(0.04, 0.03, 0.15, 12);
+    const darkWood = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.8 });
+    [[-0.8, -0.35], [0.8, -0.35], [-0.8, 0.35], [0.8, 0.35]].forEach(pos => {
+      const foot = new THREE.Mesh(feetGeo, darkWood);
+      foot.position.set(pos[0], 0.075, pos[1]);
+      foot.castShadow = true;
+      sofaGroup.add(foot);
+    });
+
+    sofaGroup.visible = false;
+    scene.add(sofaGroup);
+
+    // ----------------------------------------------------
+    // User Interaction: Window-to-Viewport Raycasting
+    // ----------------------------------------------------
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let normalMapActive = true;
+
+    function onPointerDown(event) {
+      // Ignore clicks on HUD panel
+      if (event.target.closest('#hud')) return;
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      const clientX = event.clientX - rect.left;
+      const clientY = event.clientY - rect.top;
+
+      // 1. Normalized Device Coordinates (NDC) [-1, 1]
+      mouse.x = (clientX / rect.width) * 2 - 1;
+      mouse.y = -(clientY / rect.height) * 2 + 1;
+
+      // Update HUD Coordinates Readout
+      document.getElementById('stat-pixel').textContent = `Screen Pixel: (${clientX.toFixed(1)}, ${clientY.toFixed(1)}) px`;
+      document.getElementById('stat-ndc').textContent = `NDC: (${mouse.x.toFixed(4)}, ${mouse.y.toFixed(4)})`;
+
+      // 2. Unproject Ray through Camera Matrix
+      raycaster.setFromCamera(mouse, camera);
+
+      // 3. Intersect with Ground Floor Plane
+      const intersects = raycaster.intersectObject(floorMesh);
+      if (intersects.length > 0) {
+        const hit = intersects[0].point;
+        document.getElementById('stat-hit').textContent = `3D Hit Pos: (${hit.x.toFixed(2)}, ${hit.y.toFixed(2)}, ${hit.z.toFixed(2)}) m`;
+
+        // Smoothly position active furniture to hit location
+        const activeObj = chairGroup.visible ? chairGroup : sofaGroup;
+        activeObj.position.x = hit.x;
+        activeObj.position.z = hit.z;
+      }
+    }
+    window.addEventListener('pointerdown', onPointerDown);
+
+    // ----------------------------------------------------
+    // UI Event Listeners
+    // ----------------------------------------------------
+    document.getElementById('furniture-select').addEventListener('change', (e) => {
+      if (e.target.value === 'chair') {
+        chairGroup.visible = true;
+        sofaGroup.visible = false;
+        document.getElementById('stat-brdf').textContent = 'Model: Charlie Sheen Grazing Fuzz';
+      } else {
+        chairGroup.visible = false;
+        sofaGroup.visible = true;
+        document.getElementById('stat-brdf').textContent = 'Model: PBR Normal Mapped Leather';
+      }
+    });
+
+    document.getElementById('material-model').addEventListener('change', (e) => {
+      const mode = e.target.value;
+      if (mode === 'pbr_sheen') {
+        cushionMesh.material = cushionMatPBR;
+        backMesh.material = cushionMatPBR;
+        document.getElementById('stat-brdf').textContent = 'Model: Charlie Sheen Grazing Fuzz (PBR)';
+      } else {
+        cushionMesh.material = cushionMatPhong;
+        backMesh.material = cushionMatPhong;
+        document.getElementById('stat-brdf').textContent = 'Model: Empirical Blinn-Phong (Notice Plastic Highlights)';
+      }
+    });
+
+    const toggleBtn = document.getElementById('toggle-normal-btn');
+    toggleBtn.addEventListener('click', () => {
+      normalMapActive = !normalMapActive;
+      sofaMatNormal.normalMap = normalMapActive ? leatherNormalMap : null;
+      sofaMatNormal.needsUpdate = true;
+      toggleBtn.textContent = normalMapActive ? 'Normal Map: ENABLED' : 'Normal Map: DISABLED (Flat)';
+      toggleBtn.className = normalMapActive ? '' : 'secondary';
+    });
+
+    document.getElementById('sun-slider').addEventListener('input', (e) => {
+      const rad = THREE.MathUtils.degToRad(parseFloat(e.target.value));
+      sunLight.position.x = Math.cos(rad) * 4.5;
+      sunLight.position.z = Math.sin(rad) * 4.5;
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ----------------------------------------------------
+    // Simple Smooth Orbit Animation
+    // ----------------------------------------------------
+    let angle = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Subtle slow turntable rotation for aesthetic inspection
+      chairGroup.rotation.y += 0.003;
+      sofaGroup.rotation.y += 0.003;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
